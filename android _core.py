@@ -3,7 +3,7 @@ import os
 
 def install_android_deps():
     print("[+] جاري تثبيت متطلبات الأندرويد وكالي...")
-    # استخدام الحزم المحدثة لتجنب Error 100
+    # تم تصحيح أسماء الحزم لتناسب تحديثات كالي الأخيرة وتجنب Error 100
     commands = [
         "sudo apt update",
         "sudo apt install -y adb scrcpy python3-pyqt6 libimobiledevice-1.0-6"
@@ -12,7 +12,7 @@ def install_android_deps():
         try:
             subprocess.run(cmd.split(), check=True)
         except:
-            print(f"[!] فشل في تنفيذ {cmd}")
+            print(f"[!] خطأ في تنفيذ: {cmd}")
 
 class AndroidCore:
     def __init__(self):
@@ -29,8 +29,7 @@ class AndroidCore:
 
     def start_mirror(self):
         """بدء عرض الشاشة باستخدام Scrcpy"""
-        # تشغيل العرض في عملية منفصلة لكي لا تتجمد الواجهة
-        subprocess.Popen(["scrcpy", "--always-on-top", "--window-title", "Android Mirror"])
+        subprocess.Popen(["scrcpy", "--always-on-top", "--window-title", "شاشة الأندرويد"])
 
     def kill_adb(self):
         subprocess.run([self.adb_path, "kill-server"])
