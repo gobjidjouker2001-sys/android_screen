@@ -1,69 +1,85 @@
 import sys
 import os
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QWidget, 
-                             QPushButton, QLabel, QHBoxLayout)
-from PyQt6.QtGui import QPixmap
+                             QPushButton, QLabel, QHBoxLayout, QFrame)
+from PyQt6.QtGui import QPixmap, QFont
 from PyQt6.QtCore import Qt, QTimer
 
-# استيراد المحرك (تأكد من وجود android_core.py في نفس المكان)
+# استيراد المحرك (تأكد من وجود android_core.py في نفس المجلد)
 try:
-    from android_core import AndroidCore, install_android_deps
+    from android_core import AndroidEngine, install_logic
 except ImportError:
-    print("[!] خطأ: ملف android_core.py غير موجود في هذا المجلد!")
+    print("[!] خطأ: لم يتم العثور على ملف android_core.py بجانب هذا الملف!")
     sys.exit()
 
-class AndroidMirrorGUI(QMainWindow):
+class AndroidApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        install_android_deps() # تثبيت التبعيات تلقائياً
-        self.core = AndroidCore()
-        self.init_ui()
         
-        # موقت لفحص الاتصال كل ثانيتين
+        # تنفيذ التثبيت التلقائي للأدوات الجانبية فور تشغيل الواجهة
+        install_logic()
+        
+        self.engine = AndroidEngine()
+        self.init_ui()
+
+        # موقت لتحديث حالة الاتصال تلقائياً
         self.timer = QTimer()
         self.timer.timeout.connect(self.update_status)
         self.timer.start(2000)
 
     def init_ui(self):
-        self.setWindowTitle("أداة عرض شاشة الأندرويد - كالي")
-        self.resize(500, 300)
-        self.setStyleSheet("background-color: #121212; color: white;")
+        self.setWindowTitle("Kali Android Mirror - Auto Setup")
+        self.setFixedSize(550, 350)
+        self.setStyleSheet("background-color: #121212; color: #ffffff;")
 
         central_widget = QWidget()
         layout = QVBoxLayout()
 
-        # العنوان واللوجو
+        # الهيدر واللوجو
         header = QHBoxLayout()
         self.logo = QLabel()
         if os.path.exists("logo.png"):
-            self.logo.setPixmap(QPixmap("logo.png").scaled(50, 50, Qt.AspectRatioMode.KeepAspectRatio))
+            self.logo.setPixmap(QPixmap("logo.png").scaled(60, 60, Qt.AspectRatioMode.KeepAspectRatio))
+        
+        title_label = QLabel("نظام عرض شاشة الأندرويد")
+        title_label.setFont(QFont("Arial", 16, QFont.Weight.Bold))
         header.addWidget(self.logo)
-        header.addWidget(QLabel("Android Screen Mirror"))
+        header.addWidget(title_label)
+        header.addStretch()
         layout.addLayout(header)
 
-        self.status_label = QLabel("الحالة: جاري البحث عن أجهزة...")
-        layout.addWidget(self.status_label)
+        # منطقة الحالة
+        self.status_box = QLabel("جاري فحص اتصال USB...")
+        self.status_box.setStyleSheet("background-color: #1e1e1e; padding: 20px; border-radius: 10px; border: 1px solid #333;")
+        self.status_box.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.status_box)
 
-        self.btn_mirror = QPushButton("▶ بدء عرض الشاشة")
-        self.btn_mirror.setEnabled(False)
-        self.btn_mirror.setStyleSheet("background-color: #1b5e20; padding: 15px; font-weight: bold;")
-        self.btn_mirror.clicked.connect(self.core.start_mirror)
-        
-        layout.addWidget(self.btn_mirror)
+        # الأزرار
+        self.btn_run = QPushButton("▶ ابدأ عرض الشاشة الآن")
+        self.btn_run.setEnabled(False)
+        self.btn_run.setStyleSheet("""
+            QPushButton { background-color: #2e7d32; padding: 15px; border-radius: 5px; font-weight: bold; }
+            QPushButton:disabled { background-color: #424242; color: #888; }
+        """)
+        self.btn_run.clicked.connect(self.engine.start_mirror)
+        layout.addWidget(self.btn_run)
+
         central_widget.setLayout(layout)
         self.setCentralWidget(central_widget)
 
     def update_status(self):
-        devices = self.core.get_devices()
+        devices = self.engine.get_devices()
         if devices:
-            self.status_label.setText(f"✅ تم اكتشاف جهاز: {devices[0]}")
-            self.btn_mirror.setEnabled(True)
+            self.status_box.setText(f"✅ تم اكتشاف الجهاز: {devices[0]}\nالأدوات الثانوية جاهزة للعمل.")
+            self.status_box.setStyleSheet("background-color: #1b5e20; padding: 20px; border-radius: 10px;")
+            self.btn_run.setEnabled(True)
         else:
-            self.status_label.setText("❌ لا يوجد جهاز (تأكد من تفعيل USB Debugging)")
-            self.btn_mirror.setEnabled(False)
+            self.status_box.setText("❌ لا يوجد جهاز متصل\nتأكد من تفعيل USB Debugging في الهاتف")
+            self.status_box.setStyleSheet("background-color: #c62828; padding: 20px; border-radius: 10px;")
+            self.btn_run.setEnabled(False)
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
-    window = AndroidMirrorGUI()
+    window = AndroidApp()
     window.show()
     sys.exit(app.exec())
